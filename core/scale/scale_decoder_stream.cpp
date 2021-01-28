@@ -21,34 +21,38 @@ namespace kagome::scale {
 
       switch (flag) {
         case 0b00u: {
-          number = static_cast<size_t>(first_byte >> 2u);
+          number = static_cast<size_t>(first_byte) >> 2u;
+          BOOST_ASSERT(number < compact::EncodingCategoryLimits::kMinUint16);
           break;
         }
 
         case 0b01u: {
-          auto second_byte = stream.nextByte();
-
-          number = (static_cast<size_t>((first_byte)&0b11111100u)
-                    + static_cast<size_t>(second_byte) * 256u)
-                   >> 2u;
+          number = first_byte;
+          if (!stream.hasMore(1)) {
+            // not enough data to decode integer
+            common::raise(DecodeError::NOT_ENOUGH_DATA);
+          }
+          number |= (static_cast<uint32_t>(stream.nextByte()) << 8u);
+          number >>= 2u;
+          BOOST_ASSERT(number >= compact::EncodingCategoryLimits::kMinUint16);
+          BOOST_ASSERT(number < compact::EncodingCategoryLimits::kMinUint32);
           break;
         }
 
         case 0b10u: {
           number = first_byte;
-          size_t multiplier = 256u;
           if (!stream.hasMore(3u)) {
             // not enough data to decode integer
             common::raise(DecodeError::NOT_ENOUGH_DATA);
           }
-
-          for (auto i = 0u; i < 3u; ++i) {
+          for (size_t i = 1u; i < 4u; ++i) {
             // we assured that there are 3 more bytes,
             // no need to make checks in a loop
-            number += (stream.nextByte()) * multiplier;
-            multiplier = multiplier << 8u;
+            number |= (static_cast<uint32_t>(stream.nextByte()) << i * 8u);
           }
-          number = number >> 2u;
+          number >>= 2u;
+          BOOST_ASSERT(number >= compact::EncodingCategoryLimits::kMinUint32);
+          BOOST_ASSERT(number < compact::EncodingCategoryLimits::kMinBigInteger);
           break;
         }
 
@@ -68,6 +72,7 @@ namespace kagome::scale {
             multiplier *= 256u;
           }
 
+          BOOST_ASSERT(value >= compact::EncodingCategoryLimits::kMinBigInteger);
           return value;  // special case
         }
 

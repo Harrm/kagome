@@ -56,30 +56,36 @@ TEST_P(CompactTest, DecodeSuccess) {
   ASSERT_EQ(v, value_match);
 }
 
+static const auto kMinBigInteger_LE_ = htole64(kagome::scale::compact::EncodingCategoryLimits::kMinBigInteger);
+auto kMinBigInteger_LE = (uint8_t*)(&kMinBigInteger_LE_);
+
 INSTANTIATE_TEST_CASE_P(
     CompactTestCases,
     CompactTest,
     ::testing::Values(
         // 0 is min compact integer value, negative values are not allowed
-        CompactTest::pair(0, {0}),
+        CompactTest::pair(0, {0b00 | 0u << 2}),
         // 1 is encoded as 4
-        CompactTest::pair(1, {4}),
+        CompactTest::pair(1, {0b00 | 0b0000'0001u << 2}),
         // max 1 byte value
-        CompactTest::pair(63, {252}),
+        CompactTest::pair(63, {0b00 | 0b0011'1111u << 2}),
         // min 2 bytes value
-        CompactTest::pair(64, {1, 1}),
+        CompactTest::pair(64, {0b01 | 0u << 2, 1}),
         // some 2 bytes value
         CompactTest::pair(255, {253, 3}),
         // some 2 bytes value
         CompactTest::pair(511, {253, 7}),
         // max 2 bytes value
-        CompactTest::pair(16383, {253, 255}),
+        CompactTest::pair(16383, {0b01 | 0b0011'1111u << 2, 0b1111'1111}),
         // min 4 bytes value
-        CompactTest::pair(16384, {2, 0, 1, 0}),
+        CompactTest::pair(16384, {0b10 | 0b0000'0000u << 2, 0, 1, 0}),
         // some 4 bytes value
         CompactTest::pair(65535, {254, 255, 3, 0}),
         // max 4 bytes value
-        CompactTest::pair(1073741823ul, {254, 255, 255, 255}),
+        CompactTest::pair(1073741823ul, {0b10 | 0b0011'1111u << 2, 0b1111'1111, 0b1111'1111, 0b1111'1111}),
+        // min multibyte integer
+        CompactTest::pair(1073741824ul, {0b11 | 0b0000'0000u << 2, kMinBigInteger_LE[0], kMinBigInteger_LE[1], kMinBigInteger_LE[2], kMinBigInteger_LE[3]}),
+
         // some multibyte integer
         CompactTest::pair(
             CompactInteger("1234567890123456789012345678901234567890"),
@@ -101,8 +107,6 @@ INSTANTIATE_TEST_CASE_P(
              201,
              160,
              3}),
-        // min multibyte integer
-        CompactTest::pair(1073741824, {3, 0, 0, 0, 64}),
         // max multibyte integer
         CompactTest::pair(
             CompactInteger(

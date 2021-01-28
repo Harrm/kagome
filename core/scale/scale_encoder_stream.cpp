@@ -15,25 +15,33 @@ namespace kagome::scale {
     // must not use these functions outside encodeInteger
     inline void encodeFirstCategory(uint8_t value, ScaleEncoderStream &out) {
       // only values from [0, kMinUint16) can be put here
+      BOOST_ASSERT(value < compact::EncodingCategoryLimits::kMinUint16);
+
       out << static_cast<uint8_t>(value << 2u);
     }
 
     inline void encodeSecondCategory(uint16_t value, ScaleEncoderStream &out) {
       // only values from [kMinUint16, kMinUint32) can be put here
-      auto v = value;
-      v <<= 2u;  // v *= 4
-      v += 1u;   // set 0b01 flag
-      auto minor_byte = static_cast<uint8_t>(v & 0xFFu);
-      v >>= 8u;
-      auto major_byte = static_cast<uint8_t>(v & 0xFFu);
+      BOOST_ASSERT(value >= compact::EncodingCategoryLimits::kMinUint16);
+      BOOST_ASSERT(value < compact::EncodingCategoryLimits::kMinUint32);
 
-      out << minor_byte << major_byte;
+      auto v = (value << 2u) | 0b01;
+      for (size_t i = 0; i < 2; i++) {
+        out << static_cast<uint8_t>(v & 0xFFu);
+        v >>= 8u;
+      }
     }
 
     inline void encodeThirdCategory(uint32_t value, ScaleEncoderStream &out) {
       // only values from [kMinUint32, kMinBigInteger) can be put here
-      uint32_t v = (value << 2u) + 2;
-      scale::detail::encodeInteger<uint32_t>(v, out);
+      BOOST_ASSERT(value >= compact::EncodingCategoryLimits::kMinUint32);
+      BOOST_ASSERT(value < compact::EncodingCategoryLimits::kMinBigInteger);
+
+      auto v = (value << 2u) | 0b10;
+      for (size_t i = 0; i < 4; i++) {
+        out << static_cast<uint8_t>(v & 0xFFu);
+        v >>= 8u;
+      }
     }
 
     /**
@@ -70,7 +78,7 @@ namespace kagome::scale {
       // 1 byte is reserved for header
       size_t requiredLength = 1 + bigIntLength;
 
-      if (bigIntLength > 67) {
+      if (bigIntLength - 4 > (1u << 6u) - 1) {
         common::raise(EncodeError::COMPACT_INTEGER_TOO_BIG);
       }
 
@@ -89,7 +97,7 @@ namespace kagome::scale {
        * Minor 2 bits store encoding option, in our case it is 0b11 == 3
        * We just add 3 to the result of operations above
        */
-      uint8_t header = (bigIntLength - 4) * 4 + 3;
+      uint8_t header = (bigIntLength - 4) << 2u | 0b11;
 
       result.push_back(header);
 

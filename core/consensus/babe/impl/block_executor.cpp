@@ -265,6 +265,21 @@ namespace kagome::consensus {
 
     EpochNumber epoch_number = babe_util_->slotToEpoch(babe_header.slot_number);
 
+    logger_->trace("WASM_DEBUG: block {}, extrinsics {}",
+                   block.header.number,
+                   block.body.size());
+    if (block.header.number == 29231) {
+      logger_->trace("WASM_DEBUG: block {}, extrinsics #0 contains {} bytes",
+                     block.header.number,
+                     block.body[0].data.size());
+      logger_->trace("WASM_DEBUG: block {}, extrinsics #1 contains {} bytes",
+                     block.header.number,
+                     block.body[1].data.size());
+      logger_->trace("WASM_DEBUG: block {}, extrinsics #2 contains {} bytes",
+                     block.header.number,
+                     block.body[2].data.size());
+    }
+
     OUTCOME_TRY(this_block_epoch_descriptor,
                 block_tree_->getEpochDescriptor(epoch_number,
                                                 block.header.parent_hash));

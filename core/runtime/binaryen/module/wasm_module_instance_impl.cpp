@@ -19,6 +19,7 @@ namespace kagome::runtime::binaryen {
 
   wasm::Literal WasmModuleInstanceImpl::callExportFunction(
       wasm::Name name, const wasm::LiteralList &arguments) {
+    spdlog::info("WASM_DEBUG: =======================================");
       return module_instance_->callExport(name, arguments);
   }
 

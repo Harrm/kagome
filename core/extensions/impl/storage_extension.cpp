@@ -163,18 +163,21 @@ namespace kagome::extensions {
     auto key = memory_->loadN(key_data, key_length);
     auto value = memory_->loadN(value_data, value_length);
 
-    if (value.toHex().size() < 500) {
-      logger_->trace(
-          "Set storage. Key: {}, Key hex: {} Value: {}, Value hex {}",
-          key.toString(),
-          key.toHex(),
-          value.toString(),
-          value.toHex());
-    } else {
-      logger_->trace(
-          "Set storage. Key: {}, Key hex: {} Value is too big to display",
-          key.toString(),
-          key.toHex());
+    if (logger_->level() >= spdlog::level::trace) {
+      auto value_hex = value.toHex();
+      if (value_hex.size() < 500) {
+        logger_->trace(
+            "Set storage. Key: {}, Key hex: {} Value: {}, Value hex {}",
+            key.toString(),
+            key.toHex(),
+            value.toString(),
+            value_hex);
+      } else {
+        logger_->trace(
+            "Set storage. Key: {}, Key hex: {} Value is too big to display",
+            key.toString(),
+            key.toHex());
+      }
     }
 
     auto batch = storage_provider_->getCurrentBatch();
@@ -324,6 +327,7 @@ namespace kagome::extensions {
     auto result = get(key_buffer);
     auto option = result ? boost::make_optional(result.value()) : boost::none;
 
+    logger_->set_level(spdlog::level::level_enum::trace);
     if (option) {
       logger_->trace("ext_storage_get_version_1( {} ) => {}",
                      key_buffer.toHex(),

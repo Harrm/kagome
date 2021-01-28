@@ -23,10 +23,14 @@ namespace kagome::extensions {
   }
 
   runtime::WasmPointer MemoryExtension::ext_malloc(runtime::WasmSize size) {
-    return memory_->allocate(size);
+    logger_->trace("WASM_DEBUG: try to allocate {} bytes", size);
+    auto ptr = memory_->allocate(size);
+    logger_->trace("WASM_DEBUG: allocated {} bytes, return ptr {}", size, ptr);
+    return ptr;
   }
 
   void MemoryExtension::ext_free(runtime::WasmPointer ptr) {
+    logger_->trace("WASM_DEBUG: try to deallocate memory by ptr {}", ptr);
     auto opt_size = memory_->deallocate(ptr);
     if (not opt_size) {
       logger_->warn(
@@ -35,6 +39,8 @@ namespace kagome::extensions {
           ptr);
       return;
     }
+    logger_->trace(
+        "WASM_DEBUG: deallocated {} bytes by ptr {}", opt_size.value(), ptr);
   }
 
   runtime::WasmPointer MemoryExtension::ext_allocator_malloc_version_1(
