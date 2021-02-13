@@ -327,7 +327,6 @@ namespace kagome::extensions {
     auto result = get(key_buffer);
     auto option = result ? boost::make_optional(result.value()) : boost::none;
 
-    logger_->set_level(spdlog::level::level_enum::trace);
     if (option) {
       logger_->trace("ext_storage_get_version_1( {} ) => {}",
                      key_buffer.toHex(),
